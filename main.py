@@ -1,4 +1,4 @@
-
+from fastapi import FastAPI,HTTPException
 from database import Base, engine
 
 Base.metadata.create_all(bind=engine)
