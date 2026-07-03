@@ -1,12 +1,13 @@
-# Python-generated files
+# Python
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-.env
 *.pyc
+.venv/
+.env
+
+# Frontend
+campus-placement-frontend/node_modules/
+campus-placement-frontend/dist/
+
+# Generic
+node_modules/
+dist/
