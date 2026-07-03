@@ -4,10 +4,20 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from model import *
-
+from fastapi.middleware.cors import CORSMiddleware
 
 app=FastAPI(
     title="Campus Placements System",version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
@@ -138,7 +148,6 @@ from schemes import Create_Student,Update_Student,Create_Company,Update_Company
 def insert_student(student:Create_Student,db:Session=Depends(get),current_user=Depends(roles_required(["admin"]))):
     new_student=Students(
     name=student.name,
-    user_id=current_user.id,
     cgpa=student.cgpa,
     skills=student.skills,
     department=student.department)
@@ -186,9 +195,13 @@ def get_company(db:Session=Depends(get),curreny_user=Depends(get_current_user)):
 
 @app.post("/company")
 def insert_company(company:Create_Company,db:Session=Depends(get),curreny_user=Depends(roles_required(["company","admin"]))):
-    new_company=Companies(company_name=company.company_name,
-                          minimum_cgpa=company.minimum_cgpa,
-                          required_skills=company.required_skills)
+    new_company=Companies(
+    user_id=curreny_user.id,
+    company_name=company.company_name,
+    minimum_cgpa=company.minimum_cgpa,
+    required_skills=company.required_skills,
+    
+)
     db.add(new_company)
     db.commit()
     db.refresh(new_company)
@@ -239,26 +252,34 @@ def eligibilit_check(students_id:int,company_id:int,db:Session=Depends(get),curr
         status_code=404,
         detail="Student not found"
     )
-    student_skilss=student.skills.split(",")
-    company_skill=company.required_skills.split(",")
+    # student_skilss=student.skills.split(",")
+    # company_skill=company.required_skills.split(",")
     
-    
+    student_skills = [
+    s.strip().lower()
+    for s in student.skills.split(",")
+]
+
+    company_skills = [
+    s.strip().lower()
+    for s in company.required_skills.split(",")
+]
+
     matching_skills = 0
     missing_skill=[]
 
-    for skill in company_skill:
-
-        if skill in student_skilss:
+    for skill in company_skills:
+        if skill in student_skills:
             matching_skills += 1
         else:
-            missing_skill.append(skill)
+            matching_skills.append(skill)
 
     
-    if len(company_skill)==0:
+    if len(company_skills)==0:
         readiness_score=0
     else:
         readiness_score = (
-    matching_skills / len(company_skill)
+    matching_skills / len(company_skills)
 ) * 100
         
     status=""
@@ -364,18 +385,21 @@ def ers(student_id:int,db:Session=Depends(get),curreny_user=Depends(get_current_
     for comp in company:
         matching_skills=0
         missing_skills=[]
-        student_skills=student.skills.split(",")
-        company_skills=comp.required_skills.split(",")
-        for skills in company_skills:
-            if skills in student_skills:
+        # student_skills=student.skills.split(",")
+        # company_skills=comp.required_skills.split(",")
+        student_skilss = [s.strip().lower() for s in student.skills.split(",")]
+        company_skill = [s.strip().lower()for s in comp.required_skills.split(",")
+]
+        for skills in company_skill:
+            if skills in student_skilss:
                 matching_skills+=1
             else:
                 missing_skills.append(skills)
         # readiness_score =(matching_skills/len(company_skills))*100
-        if len(company_skills) == 0:
+        if len(company_skill) == 0:
              readiness_score = 0
         else:
-            readiness_score = (matching_skills / len(company_skills)) * 100
+            readiness_score = (matching_skills / len(company_skill)) * 100
        
         status=""
         if readiness_score >=0 and readiness_score<=40:
@@ -396,43 +420,117 @@ def ers(student_id:int,db:Session=Depends(get),curreny_user=Depends(get_current_
 )
     return recommendations
 
-from fastapi import UploadFile,File
+# from fastapi import UploadFile,File
+# import fitz
+
+# @app.post("/resume-upload")
+# async def upload_resume(file:UploadFile=File(...),current_user=Depends(roles_required(["student"]))):
+#     pdf_bytes=await file.read()
+#     pdf=fitz.open(stream=pdf_bytes,filetype="pdf")
+#     extracted_text=""
+#     for pages in pdf:
+#         extracted_text+=pages.get_text()
+        
+#     known_skills=[
+#     "Python",
+#     "SQL",
+#     "PostgreSQL",
+#     "FastAPI",
+#     "Django",
+#     "Flask",
+#     "Pandas",
+#     "NumPy",
+#     "Machine Learning",
+#     "Docker",
+#     "Git",
+#     "AWS"
+# ]
+#     found_skills=[]
+#     for skills in known_skills:
+#         if skills.lower() in extracted_text.lower():
+#             found_skills.append(skills)
+            
+#     return (
+#         {
+#             "resume_text":extracted_text,
+#             "skills":found_skills
+#         }
+  
+#   )
+##resumew-uplopad
+from fastapi import UploadFile, File, Depends
 import fitz
 
 @app.post("/resume-upload")
-async def upload_resume(file:UploadFile=File(...),current_user=Depends(roles_required(["student"]))):
-    pdf_bytes=await file.read()
-    pdf=fitz.open(stream=pdf_bytes,filetype="pdf")
-    extracted_text=""
-    for pages in pdf:
-        extracted_text+=pages.get_text()
-        
-    known_skills=[
-    "Python",
-    "SQL",
-    "PostgreSQL",
-    "FastAPI",
-    "Django",
-    "Flask",
-    "Pandas",
-    "NumPy",
-    "Machine Learning",
-    "Docker",
-    "Git",
-    "AWS"
-]
-    found_skills=[]
-    for skills in known_skills:
-        if skills.lower() in extracted_text.lower():
-            found_skills.append(skills)
-            
-    return (
-        {
-            "resume_text":extracted_text,
-            "skills":found_skills
-        }
-  
-  )
+async def upload_resume(
+    file: UploadFile = File(...),
+    current_user=Depends(roles_required(["student"])),
+    db: Session = Depends(get)
+):
+    pdf_bytes = await file.read()
+
+    pdf = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+    extracted_text = ""
+
+    for page in pdf:
+        extracted_text += page.get_text()
+
+    known_skills = [
+        "Python",
+        "SQL",
+        "PostgreSQL",
+        "FastAPI",
+        "Django",
+        "Flask",
+        "Pandas",
+        "NumPy",
+        "Machine Learning",
+        "Docker",
+        "Git",
+        "AWS"
+    ]
+
+    found_skills = []
+
+    for skill in known_skills:
+        if skill.lower() in extracted_text.lower():
+            found_skills.append(skill)
+
+    # Find logged-in student's record
+    student = db.query(Students).filter(
+        Students.user_id == current_user.id
+    ).first()
+
+    if student:
+
+        # existing_skills = set()
+        existing_skills = {s.strip().lower() for s in student.skills.split(",")
+}
+
+        if student.skills:
+            existing_skills = {
+                s.strip()
+                for s in student.skills.split(",")
+                if s.strip()
+            }
+
+        # new_skills = set(found_skills)
+        new_skills = {s.lower() for s in found_skills
+}
+
+        merged_skills = sorted(existing_skills.union(new_skills))
+
+        student.skills = ",".join(merged_skills)
+
+        db.commit()
+        db.refresh(student)
+
+    return {
+        "resume_text": extracted_text,
+        "skills": found_skills
+    } 
+    
     
 ##1. PASSWORD HASING
 
@@ -626,3 +724,96 @@ def token_refresh(
             status_code=401,
             detail="Invalid Refresh Token"
         )
+@app.get("/student/me")
+def my_profile(
+    current_user=Depends(
+        roles_required(["student"])
+    ),
+    db: Session = Depends(get)
+):
+
+    student = db.query(
+        Students
+    ).filter(
+        Students.user_id == current_user.id
+    ).first()
+
+    return student
+
+@app.get("/company/me")
+def my_company(
+    current_user=Depends(
+        roles_required(["company"])
+    ),
+    db: Session = Depends(get)
+):
+
+    company = db.query(
+        Companies
+    ).filter(
+        Companies.user_id == current_user.id
+    ).first()
+
+    return company
+
+@app.get("/users/students")
+def get_student_users(
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["admin"]))
+):
+    users = db.query(Users).filter(
+        Users.role == "student"
+    ).all()
+
+    return users
+
+
+@app.get("/users/companies")
+def get_company_users(
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["admin"]))
+):
+    return db.query(Users).filter(
+        Users.role=="company"
+    ).all()
+    
+    
+@app.get("/company/eligible-students")
+def eligible_students(
+    current_user=Depends(
+        roles_required(["company"])
+    ),
+    db: Session = Depends(get)
+):
+    company = db.query(Companies).filter(
+    Companies.user_id == current_user.id
+).first()
+    students = db.query(Students).all()
+    eligible_students = []
+
+    for student in students:
+
+        student_skills = [
+        s.strip().lower()
+        for s in student.skills.split(",")
+    ]
+
+        company_skills = [
+        s.strip().lower()
+        for s in company.required_skills.split(",")
+    ]
+
+        eligible = (
+        student.cgpa >= company.minimum_cgpa
+        and all(
+            skill in student_skills
+            for skill in company_skills
+        )
+    )
+
+        if eligible:
+            eligible_students.append(student)
+
+    return eligible_students
+    
+    

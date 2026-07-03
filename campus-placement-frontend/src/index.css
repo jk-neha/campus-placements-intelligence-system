@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #0b0f19;
+  color: #f5f6fa;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(108, 92, 231, 0.4);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+:focus-visible {
+  outline: 2px solid #8b7ff0;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@layer components {
+  .glass-panel {
+    @apply relative bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-xl2 shadow-glass;
+  }
+
+  .glass-panel-strong {
+    @apply relative bg-white/[0.06] backdrop-blur-2xl border border-white/10 rounded-xl2 shadow-glow;
+  }
+
+  .input-field {
+    @apply w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-mist-100 placeholder:text-mist-700 outline-none transition-all duration-200 focus:border-signal-violet/60 focus:bg-white/[0.07];
+  }
+
+  .btn-primary {
+    @apply w-full bg-signal-violet hover:bg-signal-violetSoft text-white font-display font-semibold text-sm tracking-wide py-3 rounded-lg transition-all duration-200 shadow-[0_10px_30px_-8px_rgba(108,92,231,0.6)] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply px-4 py-2 rounded-lg border border-white/10 text-mist-300 hover:text-mist-100 hover:border-white/25 transition-all duration-200 text-sm font-medium;
+  }
+
+  .label-eyebrow {
+    @apply text-[11px] uppercase tracking-[0.18em] text-mist-500 font-mono font-medium;
+  }
+}
+
+/* Signature background: layered concentric readiness rings, echoing the
+   dashboard gauge motif, used behind auth screens */
+.signature-rings {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.signature-rings svg {
+  position: absolute;
+  top: 50%;
+  right: -10%;
+  transform: translateY(-50%);
+  opacity: 0.5;
+}
+
+@keyframes ring-rotate {
+  from {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .signature-rings .ring-rotate {
+    animation: ring-rotate 60s linear infinite;
+    transform-origin: center;
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.5s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

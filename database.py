@@ -2,9 +2,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base,sessionmaker
 
 
-url="postgresql://postgres:LIAKAAHE@localhost:5432/campus_placement_db"
+import os
 
-engine=create_engine(url)
+DATABASE_URL=os.getenv("DATABASE_URL")
+
+engine=create_engine(DATABASE_URL)
 
 Session_Local=sessionmaker(bind=engine)
 Base=declarative_base()
