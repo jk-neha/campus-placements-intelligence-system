@@ -14,7 +14,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://campus-placement-system-brown.vercel.app"
+        "https://campus-placement-system-brown.vercel.app",
+        "https://campus-placement-system-lm9lhlntc-nehas-projects-frontend.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
