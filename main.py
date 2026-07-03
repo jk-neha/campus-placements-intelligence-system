@@ -1,10 +1,4 @@
-from fastapi import FastAPI,HTTPException
-from jose import jwt
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from fastapi import Depends
-from model import *
-from fastapi.middleware.cors import CORSMiddleware
+
 from database import Base, engine
 
 Base.metadata.create_all(bind=engine)
@@ -12,7 +6,13 @@ Base.metadata.create_all(bind=engine)
 app=FastAPI(
     title="Campus Placements System",version="1.0.0"
 )
-
+from fastapi import FastAPI,HTTPException
+from jose import jwt
+from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from model import *
+from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
