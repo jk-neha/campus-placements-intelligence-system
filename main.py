@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 from fastapi import Depends
 from model import *
 from fastapi.middleware.cors import CORSMiddleware
+from database import Base, engine
+
+Base.metadata.create_all(bind=engine)
 
 app=FastAPI(
     title="Campus Placements System",version="1.0.0"
