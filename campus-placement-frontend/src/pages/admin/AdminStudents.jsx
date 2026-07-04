@@ -80,12 +80,13 @@ export default function AdminStudents() {
         eyebrow="Admin"
         title="Students"
         subtitle="Full roster of student records in the system."
-        action={
-          <button onClick={openCreate} className="btn-primary w-auto px-4 flex items-center gap-2">
-            <Plus size={16} />
-            Add student
-          </button>
-        }
+        // action={
+        //   <button onClick={openCreate} className="btn-primary w-auto px-4 flex items-center gap-2">
+        //     <Plus size={16} />
+        //     Add student
+        // //   </button>
+        // }
+        action={null}
       />
 
       {loading ? (
@@ -125,7 +126,7 @@ export default function AdminStudents() {
                 {students.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-5 py-8 text-center text-mist-500">
-                      No students yet. Add the first one.
+                      No students records Found
                     </td>
                   </tr>
                 )}

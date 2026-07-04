@@ -35,7 +35,7 @@ export const getRecommendations = async (studentId) => {
 }
 
 export const getEligibilityReadiness = async (studentId) => {
-  const { data } = await api.get(`/eligibility_readliness_status/${studentId}`)
+  const { data } = await api.get(`/student-placement-analysis/${studentId}`)
   return data
 }
 

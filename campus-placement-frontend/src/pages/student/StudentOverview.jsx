@@ -6,7 +6,9 @@ import GlassCard from '../../components/GlassCard'
 import ReadinessGauge from '../../components/ReadinessGauge'
 import Loader from '../../components/Loader'
 import { useAuth } from '../../context/AuthContext'
-import { getStudents, getEligibilityReadiness } from '../../api/students'
+// import { getStudents, getEligibilityReadiness } from '../../api/students'
+import { getEligibilityReadiness } from '../../api/students'
+import { getMyStudent } from '../../api/profile'
 
 export default function StudentOverview() {
   const { user } = useAuth()
@@ -16,18 +18,22 @@ export default function StudentOverview() {
 
   useEffect(() => {
     const load = async () => {
-      try {
-        const students = await getStudents()
-        const mine = students.find((s) => s.user_id === user.id)
-        setStudent(mine || null)
-        if (mine) {
-          const data = await getEligibilityReadiness(mine.id)
-          setReadiness(data)
-        }
-      } finally {
-        setLoading(false)
-      }
+  try {
+    const mine = await getMyStudent()
+    console.log("Found Student:", mine)
+    setStudent(mine)
+
+    if (mine) {
+      const data = await getEligibilityReadiness(mine.id)
+      setReadiness(data)
     }
+  } catch (err) {
+    console.error(err)
+    setStudent(null)
+  } finally {
+    setLoading(false)
+  }
+}
     load()
   }, [user])
 

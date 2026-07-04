@@ -77,12 +77,13 @@ export default function AdminCompanies() {
         eyebrow="Admin"
         title="Companies"
         subtitle="Hiring partners and their eligibility requirements."
-        action={
-          <button onClick={openCreate} className="btn-primary w-auto px-4 flex items-center gap-2">
-            <Plus size={16} />
-            Add company
-          </button>
-        }
+        // action={
+        //   <button onClick={openCreate} className="btn-primary w-auto px-4 flex items-center gap-2">
+        //     <Plus size={16} />
+        //     Add company
+        //   </button>
+        // }
+        action={null}
       />
 
       {loading ? (
@@ -120,7 +121,7 @@ export default function AdminCompanies() {
                 {companies.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-5 py-8 text-center text-mist-500">
-                      No companies yet. Add the first one.
+                      No Company records Found
                     </td>
                   </tr>
                 )}

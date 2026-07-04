@@ -137,7 +137,7 @@ def roles_required(roles:List[str]):
     
 @app.get("/profile")
 def profile(current_user=Depends(get_current_user)):
-    return {"id": current_user.id,
+    return {"current_user_id": current_user.id,
         "name": current_user.user_name,
         "email": current_user.user_mail,
         "role": current_user.role}
@@ -150,19 +150,59 @@ def get_students(db:Session=Depends(get),current_user=Depends(get_current_user))
 
 from schemes import Create_Student,Update_Student,Create_Company,Update_Company
 
+# @app.post("/students")
+# def insert_student(student:Create_Student,db:Session=Depends(get),current_user=Depends(roles_required(["admin"]))):
+#     new_student=Students(
+#     name=student.name,
+#     cgpa=student.cgpa,
+#     skills=student.skills,
+#     department=student.department)
+#     db.add(new_student)
+    
+#     db.commit()
+    
+#     db.refresh(new_student)
+    
+#     return new_student
+
+
 @app.post("/students")
-def insert_student(student:Create_Student,db:Session=Depends(get),current_user=Depends(roles_required(["admin"]))):
-    new_student=Students(
-    name=student.name,
-    cgpa=student.cgpa,
-    skills=student.skills,
-    department=student.department)
+def insert_student(
+    student: Create_Student,
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["admin"]))
+):
+
+    user = db.query(Users).filter(
+        Users.id == student.user_id,
+        Users.role == "student"
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="Student user not found"
+        )
+    existing_student = db.query(Students).filter(
+    Students.user_id == student.user_id).first()
+    if existing_student:
+        raise HTTPException(
+        status_code=400,
+        detail="Student profile already exists"
+    )
+    new_student = Students(
+        user_id=student.user_id,
+        name=student.name,
+        cgpa=student.cgpa,
+        department=student.department,
+        skills=student.skills
+    )
+    
+
     db.add(new_student)
-    
     db.commit()
-    
     db.refresh(new_student)
-    
+
     return new_student
 
 
@@ -199,28 +239,72 @@ def get_company(db:Session=Depends(get),curreny_user=Depends(get_current_user)):
     company=db.query(Companies).all()
     return company
 
-@app.post("/company")
-def insert_company(company:Create_Company,db:Session=Depends(get),curreny_user=Depends(roles_required(["company","admin"]))):
-    new_company=Companies(
-    user_id=curreny_user.id,
-    company_name=company.company_name,
-    minimum_cgpa=company.minimum_cgpa,
-    required_skills=company.required_skills,
+
+# # def insert_company(company:Create_Company,db:Session=Depends(get),curreny_user=Depends(roles_required(["company","admin"]))):
+# #     new_company=Companies(
+# #     user_id=curreny_user.id,
+# #     company_name=company.company_name,
+# #     minimum_cgpa=company.minimum_cgpa,
+# #     required_skills=company.required_skills,
     
-)
+# # )
+# #     db.add(new_company)
+# #     db.commit()
+# #     db.refresh(new_company)
+# #     return new_company
+
+@app.post("/company")
+def insert_company(
+    company: Create_Company,
+    db: Session = Depends(get),
+    current_user=Depends(get_current_user)
+):
+    if current_user.role not in ["company", "admin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Only company users can create company profiles"
+        )
+    existing_company = db.query(Companies).filter(
+    Companies.user_id == current_user.id
+).first()
+    if existing_company:
+        raise HTTPException(
+        status_code=400,
+        detail="Company profile already exists"
+    )
+    
+
+    new_company = Companies(
+        company_name=company.company_name,
+        minimum_cgpa=company.minimum_cgpa,
+        required_skills=company.required_skills,
+        user_id=current_user.id
+    )
+
     db.add(new_company)
     db.commit()
     db.refresh(new_company)
+
     return new_company
 
 
 @app.put("/company/{id}")
 def update_company(id:int,company:Update_Company,db:Session=Depends(get),curreny_user=Depends(roles_required(["company","admin"]))):
-    db_update=db.query(Companies).filter(Companies.id==id).first()
+    db_update=db.query(Companies).filter(
+    Companies.id==id
+).first()
     if not db_update:
         raise HTTPException(
         status_code=404,
         detail="Company not found"
+    )
+    if (
+    curreny_user.role=="company"
+    and db_update.user_id!=curreny_user.id
+):
+        raise HTTPException(
+        status_code=403,
+        detail="You can update only your company profile"
     )
     db_update.company_name=company.company_name
     db_update.minimum_cgpa=company.minimum_cgpa
@@ -252,14 +336,10 @@ def eligibilit_check(students_id:int,company_id:int,db:Session=Depends(get),curr
     if not company :
         raise HTTPException(status_code=404,detail="Company not found")
     
-    eligible=student.cgpa>=company.minimum_cgpa
-    if not student:
-        raise HTTPException(
-        status_code=404,
-        detail="Student not found"
-    )
+    # eligible=student.cgpa>=company.minimum_cgpa
     # student_skilss=student.skills.split(",")
     # company_skill=company.required_skills.split(",")
+    
     
     student_skills = [
     s.strip().lower()
@@ -278,7 +358,7 @@ def eligibilit_check(students_id:int,company_id:int,db:Session=Depends(get),curr
         if skill in student_skills:
             matching_skills += 1
         else:
-            matching_skills.append(skill)
+            missing_skill.append(skill)
 
     
     if len(company_skills)==0:
@@ -296,7 +376,10 @@ def eligibilit_check(students_id:int,company_id:int,db:Session=Depends(get),curr
     else:
         status="Placement Ready"
     
-    
+    eligible = (
+    student.cgpa >= company.minimum_cgpa
+    and len(missing_skill) == 0
+)
     return{
             "student":student.name,
             "student_cgpa":student.cgpa,
@@ -325,16 +408,40 @@ def get_recommendations(students_id:int, db:Session=Depends(get),current_user=De
         detail="Access denied"
     )
     recommendations = []
-
     for comp in companies:
-
-        if student.cgpa >= comp.minimum_cgpa:
-
-            recommendations.append(
-                {
-                    "company": comp.company_name
-                }
-            )
+        student_skills = {
+        s.strip().lower()
+        for s in student.skills.split(",")
+        if s.strip()
+    }
+        company_skills = {
+        s.strip().lower()
+        for s in comp.required_skills.split(",")
+        if s.strip()
+    }
+        missing_skills = list(
+        company_skills - student_skills
+    )
+        if len(company_skills) == 0:
+            readiness_score = 100
+        else:
+            readiness_score = (
+            (len(company_skills) - len(missing_skills))
+            / len(company_skills)
+        ) * 100
+        recommendations.append({
+        "company": comp.company_name,
+        "eligible": (
+            student.cgpa >= comp.minimum_cgpa
+            and len(missing_skills) == 0
+        ),
+        "readiness_score": readiness_score,
+        "missing_skills": missing_skills
+    })
+    recommendations.sort(
+    key=lambda x: x["readiness_score"],
+    reverse=True
+)
 
     return recommendations
 
@@ -378,7 +485,7 @@ def get_recommendations(students_id:int, db:Session=Depends(get),current_user=De
 #         }
     
     
-@app.get("/eligibility_readliness_status/{student_id}")
+@app.get("/student-placement-analysis/{student_id}")
 def ers(student_id:int,db:Session=Depends(get),curreny_user=Depends(get_current_user)):
     student=db.query(Students).filter(Students.id==student_id).first()
     company=db.query(Companies).all()
@@ -386,6 +493,12 @@ def ers(student_id:int,db:Session=Depends(get),curreny_user=Depends(get_current_
         raise HTTPException(
         status_code=404,
         detail="Student not found"
+    )
+    if (curreny_user.role == "student"and student.user_id != curreny_user.id
+):
+        raise HTTPException(
+        status_code=403,
+        detail="Access denied"
     )
     recommendations=[]
     for comp in company:
@@ -424,6 +537,10 @@ def ers(student_id:int,db:Session=Depends(get),curreny_user=Depends(get_current_
         "status": status
     }
 )
+    recommendations.sort(
+    key=lambda x: x["readiness_score"],
+    reverse=True)
+    
     return recommendations
 
 # from fastapi import UploadFile,File
@@ -509,19 +626,13 @@ async def upload_resume(
     ).first()
 
     if student:
-
-        # existing_skills = set()
-        existing_skills = {s.strip().lower() for s in student.skills.split(",")
-}
-
+        existing_skills = set()
         if student.skills:
             existing_skills = {
-                s.strip()
-                for s in student.skills.split(",")
-                if s.strip()
-            }
-
-        # new_skills = set(found_skills)
+        s.strip().lower()
+        for s in student.skills.split(",")
+        if s.strip()
+    }
         new_skills = {s.lower() for s in found_skills
 }
 
@@ -580,8 +691,24 @@ def register(user:Create_User,db:Session=Depends(get)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    # print(user.password)
-    # print(len(user.password))
+    if new_user.role == "student":
+        student_profile = Students(
+        user_id=new_user.id,
+        name=new_user.user_name,
+        cgpa=0,
+        department="",
+        skills=""
+    )
+        db.add(student_profile)
+    elif new_user.role == "company":
+        company_profile = Companies(
+        user_id=new_user.id,
+        company_name=new_user.user_name,
+        minimum_cgpa=0,
+        required_skills=""
+    )
+        db.add(company_profile)
+    db.commit()
     return {"msg":"user Registered Successfully"}
 
 
@@ -794,20 +921,24 @@ def eligible_students(
     company = db.query(Companies).filter(
     Companies.user_id == current_user.id
 ).first()
+    if not company:raise HTTPException(
+        status_code=404,
+        detail="Company profile not found"
+    )
     students = db.query(Students).all()
     eligible_students = []
 
     for student in students:
-
         student_skills = [
-        s.strip().lower()
-        for s in student.skills.split(",")
-    ]
-
+    s.strip().lower()
+    for s in student.skills.split(",")
+    if s.strip()
+]
         company_skills = [
-        s.strip().lower()
-        for s in company.required_skills.split(",")
-    ]
+    s.strip().lower()
+    for s in company.required_skills.split(",")
+    if s.strip()
+]
 
         eligible = (
         student.cgpa >= company.minimum_cgpa
