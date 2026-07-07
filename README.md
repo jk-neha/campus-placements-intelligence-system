@@ -156,7 +156,6 @@ campus-placements-intelligence-system/
 
 Main Entities:
 
-
 Users
 |
 ├── Students
