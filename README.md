@@ -2,7 +2,7 @@
 
 [![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=900&size=26&pause=10&color=4A90D9&center=true&vCenter=true&width=750&lines=%F0%9F%8E%93+Campus+Placement+Intelligence+System+%F0%9F%9A%80;Smart+Placement+Management+Platform+%F0%9F%92%BC;Built+with+React+%2B+FastAPI+%2B+PostgreSQL+%E2%9A%A1)](https://git.io/typing-svg)
 
-<img width="1200" src="https://github.com/user-attachments/assets/YOUR_SCREENSHOT_ID" />
+<img width="1200" src="https://github.com/user-attachments/assets/Thumbnail.png" />
 
 <br/>
 
