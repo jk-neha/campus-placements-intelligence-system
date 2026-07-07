@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
     await loadProfile();
   };
 
-  const register = async (payload) => api.register(payload);
+
 
   const logout = () => {
     clearTokens();
@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshProfile: loadProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshProfile: loadProfile }}>
       {children}
     </AuthContext.Provider>
   );

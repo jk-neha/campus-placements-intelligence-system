@@ -104,7 +104,7 @@ export const api = {
     return request("/login", { method: "POST", body: form.toString(), form: true, auth: false });
   },
 
-  register: (payload) => request("/register", { method: "POST", body: payload, auth: false }),
+
 
   uploadResume: (file) => {
     const formData = new FormData();

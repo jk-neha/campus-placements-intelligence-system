@@ -11,9 +11,6 @@ export default function Landing() {
           <Link to="/login" className="btn btn-ghost btn-sm">
             Sign in
           </Link>
-          <Link to="/register" className="btn btn-primary btn-sm">
-            Create account
-          </Link>
         </div>
       </nav>
 
@@ -21,23 +18,23 @@ export default function Landing() {
         <div>
           <h1>The placement office, kept in one open ledger.</h1>
           <p className="lede">
-            Students track their eligibility and skill gaps against real openings. Recruiters post
-            roles and see who's actually ready. Admins keep the whole register straight — one system,
-            no spreadsheets passed around by email.
+            Students track eligibility and applications. Recruiters manage openings and candidates.
+Admins control the complete placement workflow through one centralized system.
           </p>
           <div className="landing-cta">
-            <Link to="/register" className="btn btn-brass">
-              Register as student or company
-            </Link>
-            <Link to="/login" className="btn btn-ghost">
-              I already have an account
-            </Link>
-          </div>
+  <Link to="/login" className="btn btn-brass">
+    Access Placement Portal
+  </Link>
+
+  <Link to="/login" className="btn btn-ghost">
+    Sign in
+  </Link>
+</div>
 
           <div className="stat-strip">
             <div>
               <div className="num">3</div>
-              <div className="lbl">roles in one register</div>
+              <div className="lbl">roles in one platform</div>
             </div>
             <div>
               <div className="num">100%</div>

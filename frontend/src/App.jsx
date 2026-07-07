@@ -5,7 +5,6 @@ import AppShell from "./components/AppShell";
 
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
 
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentProfile from "./pages/student/Profile";
@@ -40,7 +39,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<RoleRedirect />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+
 
           <Route
             path="/student"
@@ -56,7 +55,6 @@ export default function App() {
             <Route path="applications" element={<StudentApplications />} />
             <Route path="recommendations" element={<StudentRecommendations />} />
             <Route path="eligibility" element={<StudentEligibility />} />
-            <Route path="placement-analysis" element={<PlacementAnalysis />} />
           </Route>
 
           <Route

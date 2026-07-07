@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ErrorBanner } from "../components/States";
 import logo from "./logo.jpeg"
@@ -54,7 +54,7 @@ export default function Login() {
           </div>
           <h2 style={{ fontSize: 22, marginBottom: 4 }}>Sign in</h2>
           <p className="stat-caption" style={{ marginBottom: 20 }}>
-            Use the email and password you registered with.
+           Use the credentials provided by your placement administrator.
           </p>
 
           <ErrorBanner message={error} />
@@ -89,10 +89,10 @@ export default function Login() {
               {busy ? "Signing in…" : "Sign in"}
             </button>
           </form>
-
           <div className="auth-switch">
-            New here? <Link to="/register">Create an account</Link>
-          </div>
+  Account access is managed by the placement administrator.
+</div>
+      
         </div>
       </div>
     </div>
