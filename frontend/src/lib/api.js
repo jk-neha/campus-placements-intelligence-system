@@ -1,5 +1,4 @@
-const BASE_URL =
-  "https://campus-placements-intelligence-system.onrender.com";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 function getTokens() {
   return {
