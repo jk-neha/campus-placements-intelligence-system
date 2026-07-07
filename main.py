@@ -1,5 +1,5 @@
 from fastapi import FastAPI,HTTPException
-
+import fitz
 from database import Base, engine
 from model import *
 Base.metadata.create_all(bind=engine)
