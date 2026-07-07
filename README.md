@@ -17,7 +17,7 @@
 
 > **A full-stack intelligent campus placement management system** that connects students, recruiters, and placement administrators through a modern web platform with automated placement tracking, student management, and career intelligence features.
 
-**[🚀 Live Demo](https://campus-placements-intelligence-system-qz07omfq6.vercel.app/)** · **[📸 Screenshots](results/)** · **[⚙️ Setup](#-setup--usage)**
+**[🚀 Live Demo](https://campus-placements-intelligence-syst.vercel.app/)** · **[📸 Screenshots](results/)** · **[⚙️ Setup](#-setup--usage)**
 
 </div>
 
