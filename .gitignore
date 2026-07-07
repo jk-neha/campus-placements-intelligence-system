@@ -3,7 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 .env
-
+*.pyo
+*.pyd
 # Frontend
 campus-placement-frontend/node_modules/
 campus-placement-frontend/dist/
@@ -11,3 +12,27 @@ campus-placement-frontend/dist/
 # Generic
 node_modules/
 dist/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment
+.env
+
+# Virtual environment
+venv/
+.venv/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Vite
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/

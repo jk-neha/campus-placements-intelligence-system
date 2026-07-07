@@ -1,12 +1,11 @@
 from pydantic import BaseModel
 
 class Create_Student(BaseModel):
-    user_id:int
+    registration_number:str
     name:str
-    cgpa:float
+    email:str
+    password:str
     department:str
-    skills:str
-    
     
 class Update_Student(BaseModel):
     name:str
@@ -15,10 +14,10 @@ class Update_Student(BaseModel):
     skills:str
     
 class Create_Company(BaseModel):
-    user_id:int
+    company_code:str
     company_name:str
-    minimum_cgpa:float
-    required_skills:str
+    email:str
+    password:str
     
     
 class Update_Company(BaseModel):
@@ -36,3 +35,15 @@ class Login_User(BaseModel):
     user_mail:str
     password:str
     
+class Create_Job(BaseModel):
+    title:str
+    description:str
+    salary:str
+    deadline:str
+    status:str
+    
+class Create_Application(BaseModel):
+    job_id:int
+    
+class UpdateApplicationStatus(BaseModel):
+    status:str

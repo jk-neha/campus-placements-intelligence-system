@@ -1,22 +1,38 @@
 from fastapi import FastAPI,HTTPException
+
 from database import Base, engine
-
+from model import *
 Base.metadata.create_all(bind=engine)
-
-app=FastAPI(
-    title="Campus Placements System",version="1.0.0"
-)
-from fastapi import FastAPI,HTTPException
 from jose import jwt
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from fastapi import Depends
-from model import *
+from schemes import (
+    Create_Student,
+    Update_Student,
+    Create_Company,
+    Update_Company,
+    Create_User,
+    Login_User,
+    Create_Job,
+    Create_Application,
+    UpdateApplicationStatus
+)
+
+
+
+app=FastAPI(
+    title="Campus Placements System",version="1.0.0"
+)
+
+
+
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:5174"
         "https://campus-placement-system-brown.vercel.app"
     ],
     allow_credentials=True,
@@ -101,7 +117,62 @@ def get_current_user(
             status_code=401,
             detail="Invalid Token"
         )
+@app.post("/register",tags=["Register"])
+def register(user: Create_User, db: Session = Depends(get)):
 
+    existing = db.query(Users).filter(
+        Users.user_mail == user.user_mail
+    ).first()
+
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already exists"
+        )
+
+    if user.role not in ["admin", "student", "company"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid role"
+        )
+
+    new_user = Users(
+        user_name=user.user_name,
+        user_mail=user.user_mail,
+        password=hash_password(user.password),  # 🔥 FIX HERE
+        role=user.role
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    # auto create profile 👇
+    if new_user.role == "student":
+        db.add(Students(
+            user_id=new_user.id,
+            registration_number="TEMP",
+            name=new_user.user_name,
+            cgpa=0,
+            department="",
+            skills=""
+        ))
+
+    elif new_user.role == "company":
+        db.add(Companies(
+            user_id=new_user.id,
+            company_code="TEMP",
+            company_name=new_user.user_name,
+            minimum_cgpa=0,
+            required_skills=""
+        ))
+
+    db.commit()
+
+    return {
+        "message": "User registered successfully",
+        "user_id": new_user.id
+    }
     
 # def admin_only(current_user=Depends(get_current_user)):
 #     if current_user.role!="admin":
@@ -143,12 +214,109 @@ def profile(current_user=Depends(get_current_user)):
         "role": current_user.role}
 
 
+#ADMIN
+@app.post("/admin/create-student")
+def create_student(
+    student: Create_Student,
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["admin"]))
+):
+
+    existing_user = db.query(Users).filter(
+        Users.user_mail == student.email
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already exists"
+        )
+
+    user = Users(
+        user_name=student.name,
+        user_mail=student.email,
+        password=hash_password(student.password),
+        role="student"
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    student_profile = Students(
+        user_id=user.id,
+        registration_number=student.registration_number,
+        name=student.name,
+        cgpa=0,
+        department=student.department,
+        skills=""
+    )
+
+    db.add(student_profile)
+    db.commit()
+    db.refresh(student_profile)
+
+    return {
+    "message": "Student created successfully",
+    "student": {
+        "id": student_profile.id,
+        "name": student_profile.name,
+        "registration_number": student_profile.registration_number
+    }
+}
+
+
+@app.post("/admin/create-company")
+def create_company(
+    company: Create_Company,
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["admin"]))
+):
+
+    existing_user = db.query(Users).filter(
+        Users.user_mail == company.email
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already exists"
+        )
+
+    user = Users(
+        user_name=company.company_name,
+        user_mail=company.email,
+        password=hash_password(company.password),
+        role="company"
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    company_profile = Companies(
+        user_id=user.id,
+        company_code=company.company_code,
+        company_name=company.company_name,
+        minimum_cgpa=0,
+        required_skills=""
+    )
+
+    db.add(company_profile)
+    db.commit()
+    db.refresh(company_profile)
+
+    return {
+        "message":"Company created successfully",
+        "company":company_profile
+    }
+    
+    
 @app.get("/students",tags=["students"])
 def get_students(db:Session=Depends(get),current_user=Depends(get_current_user)):
         students=db.query(Students).all()
         return students
 
-from schemes import Create_Student,Update_Student,Create_Company,Update_Company
 
 # @app.post("/students")
 # def insert_student(student:Create_Student,db:Session=Depends(get),current_user=Depends(roles_required(["admin"]))):
@@ -166,44 +334,44 @@ from schemes import Create_Student,Update_Student,Create_Company,Update_Company
 #     return new_student
 
 
-@app.post("/students")
-def insert_student(
-    student: Create_Student,
-    db: Session = Depends(get),
-    current_user=Depends(roles_required(["admin"]))
-):
+# @app.post("/students")
+# def insert_student(
+#     student: Create_Student,
+#     db: Session = Depends(get),
+#     current_user=Depends(roles_required(["admin"]))
+# ):
 
-    user = db.query(Users).filter(
-        Users.id == student.user_id,
-        Users.role == "student"
-    ).first()
+#     user = db.query(Users).filter(
+#         Users.id == student.user_id,
+#         Users.role == "student"
+#     ).first()
 
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="Student user not found"
-        )
-    existing_student = db.query(Students).filter(
-    Students.user_id == student.user_id).first()
-    if existing_student:
-        raise HTTPException(
-        status_code=400,
-        detail="Student profile already exists"
-    )
-    new_student = Students(
-        user_id=student.user_id,
-        name=student.name,
-        cgpa=student.cgpa,
-        department=student.department,
-        skills=student.skills
-    )
+#     if not user:
+#         raise HTTPException(
+#             status_code=404,
+#             detail="Student user not found"
+#         )
+#     existing_student = db.query(Students).filter(
+#     Students.user_id == student.user_id).first()
+#     if existing_student:
+#         raise HTTPException(
+#         status_code=400,
+#         detail="Student profile already exists"
+#     )
+#     new_student = Students(
+#         user_id=student.user_id,
+#         name=student.name,
+#         cgpa=student.cgpa,
+#         department=student.department,
+#         skills=student.skills
+#     )
     
 
-    db.add(new_student)
-    db.commit()
-    db.refresh(new_student)
+#     db.add(new_student)
+#     db.commit()
+#     db.refresh(new_student)
 
-    return new_student
+#     return new_student
 
 
 @app.put("/students/{id}")
@@ -253,39 +421,39 @@ def get_company(db:Session=Depends(get),curreny_user=Depends(get_current_user)):
 # #     db.refresh(new_company)
 # #     return new_company
 
-@app.post("/company")
-def insert_company(
-    company: Create_Company,
-    db: Session = Depends(get),
-    current_user=Depends(get_current_user)
-):
-    if current_user.role not in ["company", "admin"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Only company users can create company profiles"
-        )
-    existing_company = db.query(Companies).filter(
-    Companies.user_id == current_user.id
-).first()
-    if existing_company:
-        raise HTTPException(
-        status_code=400,
-        detail="Company profile already exists"
-    )
+# @app.post("/company")
+# def insert_company(
+#     company: Create_Company,
+#     db: Session = Depends(get),
+#     current_user=Depends(get_current_user)
+# ):
+#     if current_user.role not in ["company", "admin"]:
+#         raise HTTPException(
+#             status_code=403,
+#             detail="Only company users can create company profiles"
+#         )
+#     existing_company = db.query(Companies).filter(
+#     Companies.user_id == current_user.id
+# ).first()
+#     if existing_company:
+#         raise HTTPException(
+#         status_code=400,
+#         detail="Company profile already exists"
+#     )
     
 
-    new_company = Companies(
-        company_name=company.company_name,
-        minimum_cgpa=company.minimum_cgpa,
-        required_skills=company.required_skills,
-        user_id=current_user.id
-    )
+#     new_company = Companies(
+#         company_name=company.company_name,
+#         minimum_cgpa=company.minimum_cgpa,
+#         required_skills=company.required_skills,
+#         user_id=current_user.id
+#     )
 
-    db.add(new_company)
-    db.commit()
-    db.refresh(new_company)
+#     db.add(new_company)
+#     db.commit()
+#     db.refresh(new_company)
 
-    return new_company
+#     return new_company
 
 
 @app.put("/company/{id}")
@@ -666,50 +834,50 @@ def hash_password(password):
 def verify_password(plain_password,hased_password):
     return pswd_conext.verify(plain_password,hased_password)
 
-@app.post("/register_user",tags=["Register"])
-def register(user:Create_User,db:Session=Depends(get)):
-    existing_user=db.query(Users).filter(Users.user_mail==user.user_mail).first()
-    if existing_user:
-        return{
+# @app.post("/register_user",tags=["Register"])
+# def register(user:Create_User,db:Session=Depends(get)):
+#     existing_user=db.query(Users).filter(Users.user_mail==user.user_mail).first()
+#     if existing_user:
+#         return{
             
-            "msg":"Email already exists"
-        }
-    ALLOWED_ROLES = {"admin", "student", "company"}
+#             "msg":"Email already exists"
+#         }
+#     ALLOWED_ROLES = {"admin", "student", "company"}
     
-    if user.role.lower() not in ALLOWED_ROLES:
-        raise HTTPException(
-        status_code=400,
-        detail="Invalid role"
-    )
+#     if user.role.lower() not in ALLOWED_ROLES:
+#         raise HTTPException(
+#         status_code=400,
+#         detail="Invalid role"
+#     )
 
-    new_user=Users(
-    user_name=user.user_name,
-    user_mail=user.user_mail,
-    password=hash_password(user.password),
-    role=user.role.lower()
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    if new_user.role == "student":
-        student_profile = Students(
-        user_id=new_user.id,
-        name=new_user.user_name,
-        cgpa=0,
-        department="",
-        skills=""
-    )
-        db.add(student_profile)
-    elif new_user.role == "company":
-        company_profile = Companies(
-        user_id=new_user.id,
-        company_name=new_user.user_name,
-        minimum_cgpa=0,
-        required_skills=""
-    )
-        db.add(company_profile)
-    db.commit()
-    return {"msg":"user Registered Successfully"}
+#     new_user=Users(
+#     user_name=user.user_name,
+#     user_mail=user.user_mail,
+#     password=hash_password(user.password),
+#     role=user.role.lower()
+#     )
+#     db.add(new_user)
+#     db.commit()
+#     db.refresh(new_user)
+#     if new_user.role == "student":
+#         student_profile = Students(
+#         user_id=new_user.id,
+#         name=new_user.user_name,
+#         cgpa=0,
+#         department="",
+#         skills=""
+#     )
+#         db.add(student_profile)
+#     elif new_user.role == "company":
+#         company_profile = Companies(
+#         user_id=new_user.id,
+#         company_name=new_user.user_name,
+#         minimum_cgpa=0,
+#         required_skills=""
+#     )
+#         db.add(company_profile)
+#     db.commit()
+#     return {"msg":"user Registered Successfully"}
 
 
 
@@ -954,3 +1122,291 @@ def eligible_students(
     return eligible_students
     
     
+##JOBS:
+from datetime import datetime
+
+@app.post("/jobs")
+def create_job(
+    job: Create_Job,
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["company"]))
+):
+
+    company = db.query(Companies).filter(
+        Companies.user_id == current_user.id
+    ).first()
+
+    if not company:
+        raise HTTPException(
+            status_code=404,
+            detail="Company profile not found"
+        )
+
+    new_job = Jobs(
+        company_id=company.id,
+        title=job.title,
+        description=job.description,
+        salary=job.salary,
+        deadline=datetime.strptime(
+            job.deadline,
+            "%Y-%m-%d"
+        ).date()
+    )
+
+    db.add(new_job)
+    db.commit()
+    db.refresh(new_job)
+
+    return new_job
+
+@app.get("/jobs")
+def get_jobs(
+    db: Session = Depends(get),
+    current_user=Depends(get_current_user)
+):
+    return db.query(Jobs).all()
+
+@app.post("/apply")
+def apply_job(
+    application: Create_Application,
+    db: Session = Depends(get),
+    current_user=Depends(
+        roles_required(["student"])
+    )
+):
+
+    student = db.query(Students).filter(
+        Students.user_id == current_user.id
+    ).first()
+
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student profile not found"
+        )
+
+    job = db.query(Jobs).filter(
+        Jobs.id == application.job_id
+    ).first()
+
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found"
+        )
+
+    already_applied = db.query(
+        Applications
+    ).filter(
+        Applications.student_id == student.id,
+        Applications.job_id == job.id
+    ).first()
+
+    if already_applied:
+        raise HTTPException(
+            status_code=400,
+            detail="Already applied"
+        )
+
+    new_application = Applications(
+        student_id=student.id,
+        job_id=job.id,
+        status="Applied"
+    )
+
+    db.add(new_application)
+    db.commit()
+    db.refresh(new_application)
+
+    return {
+        "message":"Application submitted"
+    }
+    
+# @app.get("/student/applications")
+# def my_applications(
+#     db: Session = Depends(get),
+#     current_user=Depends(
+#         roles_required(["student"])
+#     )
+# ):
+
+#     student = db.query(Students).filter(
+#         Students.user_id == current_user.id
+#     ).first()
+
+#     return db.query(Applications).filter(
+#         Applications.student_id == student.id
+#     ).all()
+    
+    
+@app.get("/student/applications")
+def my_applications(
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["student"]))
+):
+
+    student = db.query(Students).filter(
+        Students.user_id == current_user.id
+    ).first()
+
+    applications = db.query(Applications).filter(
+        Applications.student_id == student.id
+    ).all()
+
+    result = []
+
+    for app in applications:
+        job = db.query(Jobs).filter(Jobs.id == app.job_id).first()
+        company = db.query(Companies).filter(Companies.id == job.company_id).first()
+
+        result.append({
+            "application_id": app.id,
+            "job_title": job.title,
+            "company": company.company_name,
+            "status": app.status,
+            "salary": job.salary,
+            "deadline": job.deadline
+        })
+
+    return result
+
+
+@app.get("/company/applications")
+def company_applications(
+    db: Session = Depends(get),
+    current_user=Depends(
+        roles_required(["company"])
+    )
+):
+
+    company = db.query(Companies).filter(
+        Companies.user_id == current_user.id
+    ).first()
+
+    jobs = db.query(Jobs).filter(
+        Jobs.company_id == company.id
+    ).all()
+
+    job_ids = [job.id for job in jobs]
+
+    applications = db.query(
+        Applications
+    ).filter(
+        Applications.job_id.in_(job_ids)
+    ).all()
+
+    return applications
+
+# @app.put("/applications/{application_id}/status")
+# def update_status(
+#     application_id:int,
+#     data:UpdateApplicationStatus,
+#     db:Session=Depends(get),
+#     current_user=Depends(
+#         roles_required(["company"])
+#     )
+# ):
+
+#     application = db.query(
+#         Applications
+#     ).filter(
+#         Applications.id == application_id
+#     ).first()
+
+#     if not application:
+#         raise HTTPException(
+#             status_code=404,
+#             detail="Application not found"
+#         )
+
+#     application.status = data.status
+
+#     db.commit()
+#     db.refresh(application)
+
+#     return application
+
+@app.put("/applications/{application_id}/status")
+def update_status(
+    application_id: int,
+    data: UpdateApplicationStatus,
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["company"]))
+):
+
+    application = db.query(Applications).filter(
+        Applications.id == application_id
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    valid_status = ["Applied", "Under Review", "Shortlisted", "Rejected", "Selected"]
+
+    if data.status not in valid_status:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    application.status = data.status
+    db.commit()
+    db.refresh(application)
+
+    return {
+        "message": "Status updated",
+        "application_id": application.id,
+        "status": application.status
+    }
+
+
+#compamy side applications filetr:
+@app.get("/company/applications/{status}")
+def filter_company_applications(
+    status: str,
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["company"]))
+):
+
+    company = db.query(Companies).filter(
+        Companies.user_id == current_user.id
+    ).first()
+
+    jobs = db.query(Jobs).filter(
+        Jobs.company_id == company.id
+    ).all()
+
+    job_ids = [j.id for j in jobs]
+
+    return db.query(Applications).filter(
+        Applications.job_id.in_(job_ids),
+        Applications.status == status
+    ).all()
+    
+    
+#admin-registeration
+@app.post("/admin/create-admin")
+def create_admin(
+    admin: Create_User,
+    db: Session = Depends(get),
+    current_user=Depends(roles_required(["admin"]))
+):
+    existing = db.query(Users).filter(
+        Users.user_mail == admin.user_mail
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    user = Users(
+        user_name=admin.user_name,
+        user_mail=admin.user_mail,
+        password=hash_password(admin.password),
+        role="admin"
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message": "Admin created successfully",
+        "id": user.id
+    }
